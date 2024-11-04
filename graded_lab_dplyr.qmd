@@ -1,0 +1,138 @@
+---
+title: "Graded_lab"
+format: html
+editor: visual
+---
+
+```{r}
+#| message: false
+here::i_am("Exercices_sur_Rstudio.git.Rproj")
+library(vroom)
+library(dplyr)
+library(here)
+library(ggplot)
+theme_set(theme_dark())
+```
+
+## Chargement des données 
+```{r}
+spotify <- vroom(here("top-spotify-songs-from-20102019-by-year.csv"))
+```
+
+```{r}
+spotify |>  distinct(title) |> nrow()
+spotify |> distinct(artist) |> nrow()
+spotify |>  distinct(`top genre`) |> nrow()
+```
+
+
+```{r}
+spotify |> group_by(year) |> summarise(n= n())
+## avec groupe by utiliser summarise sinon ça te donne un chiffre est pas une colonne. 
+```
+
+```{r}
+spotify |> group_by(artist) |> distinct(title) |> summarise(n=n()) |> arrange(-n) |> slice(1)
+## fonction arrange callse par ordre croissant. 
+```
+
+```{r}
+spotify |> 
+  distinct(title, .keep_all = TRUE) |> 
+  group_by(`top genre`) |> 
+  summarise (min= min(bpm), max= max(bpm), median = median(bpm), mean = mean(bpm), n=n())
+## obligatoire de garder .keep_all + TRUE, sinon seul la colonne title est conservée et peux pas faire d calcul dur bpm)
+```
+
+
+
+## EXERCICE 2 : 
+
+## Question 1 
+```{r}
+grade <- vroom(here("grades (2).csv"))
+```
+
+## Question 2 
+```{r}
+grade |> 
+  summarise(
+    min = min(Exam, na.rm = TRUE),
+    max = max(Exam, na.rm = TRUE),
+    median =median(Exam, na.rm = TRUE),
+    mean = (mean(Exam, na.rm = TRUE)
+  ))
+## utiliser na.rm = TRUE pour ignorr les valeurs manquantes dans les calculs
+```
+
+## Question 3 
+```{r}
+grade |> filter(is.na(Exam)) 
+```
+
+## Question 4
+```{r}
+grade |> 
+  group_by(Group)  |>
+  summarise(number_of_student =n())
+
+```
+
+## Question 5 
+```{r}
+grade |> 
+  group_by(Group)|>
+  summarise(n = sum(is.na(Exam)))
+```
+
+## Question 6 :
+```{r}
+library(tidyr)
+long_grades <- grade |> pivot_longer(-c(Id, Group))
+
+long_grades |> slice(1:5)
+
+```
+
+## Question 7
+```{r}
+long_grades |> 
+  group_by(Id) |>
+  summarise(missd =sum(is.na(value)))
+```
+
+##Question 8 
+```{r}
+long_grades |> 
+  filter(name == "Exam") |>
+  group_by(Group) |>
+  summarise(n = sum(is.na(value)))
+```
+
+##Question 9 
+```{r}
+library(stringr)
+long_grades |>
+  filter(str_starts(name, "Online"))|>
+  group_by(Id) |>
+  summarise(missed= sum(is.na(value)))
+
+```
+
+## Question 10 
+```{r}
+long_grades |> 
+  filter(str_starts(name, "MCQ")) |>
+  group_by(Id)|>
+  summarise(Missed = anyNA(value))
+```
+
+## Question 11
+```{r}
+long_grades |> 
+  filter(str_starts(name, "MCQ"))|>
+  group_by(Group)|>
+  summarise(missed = anyNA(value)) |> 
+  summarise (P missed= sum(missed)/n())
+```
+
