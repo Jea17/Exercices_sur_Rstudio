@@ -4,23 +4,142 @@ format: html
 editor: visual
 ---
 
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
-
 ```{r}
-1 + 1
+#| message: false
+here::i_am("Exercices_sur_Rstudio.git.Rproj")
+library(here)
+library(vroom)
+library(ggplot2)
+library(dplyr)
+library(readr)
+theme_set(theme_dark())
 ```
 
-You can add options to executable code like this
-
+## Data import 
 ```{r}
-#| echo: false
-2 * 2
+#| message: false
+bank <- vroom(here("bank.csv"))
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+
+## Elementary operations 
+```{r}
+print(names(bank)) 
+## nom des variables
+print(dim(bank))
+## dimension des données
+print(summary(bank))
+```
+
+## Filtering, selcting and extracting 
+```{r}
+bank |> filter(age >= 50) 
+```
+
+```{r}
+bank |> filter(marital == "married", education == "secondary") |> nrow() |> print()
+## nrow renvoie le nombre de ligne concerné après l'application du filtre
+```
+
+```{r}
+bank |> filter(age <= 25  & (marital == "single" | education == "tertiary")) |> summary()
+## signle ou tertiary level of eduaction
+```
+
+
+## Selecting
+```{r}
+bank |> select(age) |> summary() 
+bank |> pull(age) |> summary() |> as.numeric()
+## resultat avec pull c'est comme un vecteur
+```
+
+```{r}
+bank |> select(where( is.numeric)) |> summary()
+```
+
+```{r}
+bank |> filter(marital == "married") |> pull(age) |> median()
+## meidanne nécéssite un vecteur = pull
+```
+
+
+## Crating Varaibles (mutate)
+```{r}
+leab <- vroom(here("life-expectancy-at-birth-who.csv"))
+```
+
+```{r}
+leab |> mutate("différence entre les ésperances de vie "= Male - Female)
+## créer une nouvelle colonne
+```
+
+```{r}
+leab |> mutate("relative diff" = (Male - Female) / `Both sexes`)
+```
+
+#with aggregation
+```{r}
+leab |> mutate(dif = Female- median(Female))
+```
+
+```{r}
+leab |> mutate(atypical = abs(`Both sexes` - mean(`Both sexes`)) > 2 * sd(`Both sexes`))
+
+```
+
+## Summarising 
+```{r}
+bank |> summarise(mean_age = mean(age), median_age = median(age))
+```
+
+```{r}
+leab |> summarise (lowest = min(Male), min(Female))
+```
+
+## Grouping (the group_by function)
+```{r}
+bank |> group_by(marital) |> summarise(median(age)) 
+```
+
+```{r}
+bank |> group_by(job) |> summarise(nb=n())
+## calcul le nombre de gens par groupe
+```
+
+```{r}
+leab |> group_by(Year) |> summarise(median(Female), min(Female), max(Female))
+```
+
+```{r}
+leab |> group_by(Country) |> summarise (both=mean(`Both sexes`)) |> filter(both < mean(both)- 2*sd(both))
+
+## Comparasion avec summuraise PAS pareil que MUTATE. 
+```
+
+#complexe grouping
+```{r}
+bank |> 
+  group_by(education, marital) |>            #Regrouper par éducation et état civil
+  summarise(n = n()) |>   # Calculer le nombre d'entrées par groupe
+  mutate(freq = n / sum(n)) |>               #Calculer la fréquence de chaque groupe
+  filter(marital == "married") |>             # Filtrer pour ne garder que les mariés
+  select(-n) 
+#Exclure la colonne de compte
+```
+
+ 
+```{r}
+bank |> group_by(default, housing, loan) |> summarise(n=n()) |> mutate(freq = n/sum(n)) |> filter(default == "yes") |> select(-n, -default)
+```
+
+#group selection and group mutate 
+```{r}
+leab |> group_by(Country) |> filter(median(`Both sexes`)> 75)
+## séléctione les lignes qui valident les caracétristqiues et redonne les données pour tous les pays
+```
+
+```{r}
+bank |> group_by(marital, education) |> filter(age > 10 + median(age))
+```
+
